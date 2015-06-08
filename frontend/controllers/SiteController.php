@@ -25,7 +25,13 @@ class SiteController extends Controller
 	public function actionDetails($id)
 	{
 		$phone       = Phones::findOne($id);
-		$phoneParams = CharactersValues::find()->with('names')->where(['pid'=>$id])->all();
-		return $this->renderPartial('details', ['phone'=>$phone, $phoneParams]);
+		$phoneParams = CharactersValues::find()
+									   ->with('names')
+									   ->where(['pid' => $id])
+									   ->all();
+		return $this->renderPartial('details', ['phone'       => $phone,
+												'phoneParams' => $phoneParams
+											 ]
+		);
 	}
 }
