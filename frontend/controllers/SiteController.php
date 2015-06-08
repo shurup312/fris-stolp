@@ -1,23 +1,31 @@
 <?php
 namespace frontend\controllers;
 
-use common\models\forms\LoginForm;
+use app\models\CharactersValues;
+use app\models\Phones;
 use Yii;
-use frontend\models\forms\PasswordResetRequestForm;
-use frontend\models\forms\ContactForm;
-use yii\base\InvalidParamException;
-use yii\web\BadRequestHttpException;
 use yii\web\Controller;
-use yii\filters\AccessControl;
 
 /**
  * Site controller
  */
-class SiteController extends Controller {
+class SiteController extends Controller
+{
 
 	public $layout = 'public';
+	private $param = [];
 
-	public function actionIndex () {
-		return $this->renderPartial('index');
+	public function actionIndex()
+	{
+		$phones = Phones::find()
+						->all();
+		return $this->renderPartial('index', ['phones' => $phones]);
+	}
+
+	public function actionDetails($id)
+	{
+		$phone       = Phones::findOne($id);
+		$phoneParams = CharactersValues::find()->with('names')->where(['pid'=>$id])->all();
+		return $this->renderPartial('details', ['phone'=>$phone, $phoneParams]);
 	}
 }
