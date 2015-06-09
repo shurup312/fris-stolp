@@ -24,4 +24,8 @@ class Phones extends ActiveRecord {
 	{
 		return $this->photo?$this->photo:'/images/noPhoto.png';
 	}
+
+	public function getParams(){
+		return $this->hasMany(CharactersValues::className(), ['pid' => 'id']);
+	}
 }

@@ -23,4 +23,5 @@ class CharactersValues extends ActiveRecord {
 	{
 		return $this->hasOne(Characters::className(), ['id' => 'cid']);
 	}
+
 }

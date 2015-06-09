@@ -9,46 +9,88 @@ use app\models\Phones;
 
 /**
  * @var array $phones
+ * @var array $filterList
+ * @var array $filterList
  */
+?>
+<link rel="stylesheet" href="/vendor/dist/css/bootstrap.css"/>
+<div class="center filter-form">
+	<form action="" method="post">
 
+	<?
+	foreach ($filterList as $id => $select) {
+		?>
+		<div class="filter">
+			<h4><?= $select['name']; ?></h4>
+			<select name="filter[<?= $id; ?>]" id="">
+				<option value="">--</option>
+				<? foreach ($select['params'] as $option) {
+					?>
+					<option value='<?= $option; ?>' <?=isset($_POST['filter']) && isset($_POST['filter'][$id]) && $_POST['filter'][$id] == $option?'selected="selected"':'';?>><?= $option; ?></option><?
+				}?>
+			</select>
+		</div>
+	<?
+	}
+	?>
+	<div class="clearfix"></div>
+	<br/>
+	<input type="submit" value="Искать" class="btn btn-primary" />
+	</form>
+</div>
+<div class="listAll"><?
 foreach ($phones as $item) {
 	/**
 	 * @var Phones $item
 	 */
 	?>
-	<div class="tovar">
-		<?=$item->name;?><br/>
-		<?=$item->price;?> руб. <br/>
-		<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>"/><br/>
-		<a href="/details/<?=$item->id;?>">Детали</a>
+	<div class="col-md-4 tovar">
+		<strong><?= $item->name; ?></strong><br/>
+		<?= $item->price; ?> руб. <br/>
+		<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>" class=""/><br/>
+		<a href="javascript:void(0);"><span class="glyphicon glyphicon-hand-up"></span> Нравится</a>
+		<a href="javascript:void(0);"><span class="glyphicon glyphicon-hand-down"></span> Не нравится <br/></a>
+		<a href="/details/<?= $item->id; ?>" class="btn btn-info">Детали</a>
 	</div>
-	<?
+<?
 }
-?>
+?></div>
 <style type="text/css">
-	.tovar img{
-		height: 150px;
+	.tovar img {
+		height: 50%;
 		max-width: 100%;
 		margin: 3ex 0;
 	}
-	.tovar a{
-		display: block;
-		width: 80%;
-		background: #33ff33;
-		margin: 0 auto;
-		padding: 1ex 0;
-		text-decoration: none;
-		cursor: pointer;
-		color:#000000;
-	}
+
 	.tovar {
-		width:15%;
 		padding: 1% 1%;
-		margin: 1% 1%;
-		border:1px dotted black;
-		float: left;
+		border: 1px dotted black;
 		font-size: 2ex;
 		text-align: center;
-		height:250px;
+		height: 320px;
+	}
+	.filter select{
+		width: 80%;
+	}
+	.filter{
+		float:left;
+		width:20%;
+		text-align: left;
+	}
+	.clearfix {
+		clear:both;
+	}
+	.center {
+		text-align: center;
+	}
+
+	.filter-form {
+		margin:0 auto;
+		width: 1200px;
+	}
+
+	.listAll {
+		width: 1200px;
+		margin: 0 auto;
 	}
 </style>
