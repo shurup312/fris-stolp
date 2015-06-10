@@ -10,10 +10,10 @@ use app\models\Phones;
 /**
  * @var array $phones
  * @var array $filterList
- * @var array $filterList
+ * @var array $likes
  */
 ?>
-<link rel="stylesheet" href="/vendor/dist/css/bootstrap.css"/>
+<link rel="stylesheet" href="/bootstrap/dist/css/bootstrap.css"/>
 <div class="center filter-form">
 	<form action="" method="post">
 
@@ -36,6 +36,7 @@ use app\models\Phones;
 	<div class="clearfix"></div>
 	<br/>
 	<input type="submit" value="Искать" class="btn btn-primary" />
+	<a href="/" class="btn btn-warning">Сбросить</a>
 	</form>
 </div>
 <div class="listAll"><?
@@ -48,13 +49,21 @@ foreach ($phones as $item) {
 		<strong><?= $item->name; ?></strong><br/>
 		<?= $item->price; ?> руб. <br/>
 		<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>" class=""/><br/>
-		<a href="javascript:void(0);"><span class="glyphicon glyphicon-hand-up"></span> Нравится</a>
-		<a href="javascript:void(0);"><span class="glyphicon glyphicon-hand-down"></span> Не нравится <br/></a>
+		<? if(isset($likes[$item->id])) {
+			?><a href="/site/dellike/?id=<?= $item->id; ?>">
+			Отменить <?=$likes[$item->id]==1?'<span class="glyphicon glyphicon-hand-up"></span>':'<span class="glyphicon glyphicon-hand-down"></span>';?>
+			<br/></a><?
+		} else {
+			?><a href="/site/like/?id=<?= $item->id; ?>"><span class="glyphicon glyphicon-hand-up"></span> Нравится</a>&nbsp;&nbsp;<?
+			?><a href="/site/dislike/?id=<?= $item->id; ?>"><span class="glyphicon glyphicon-hand-down"></span> Не нравится <br/></a><?
+		};?>
+
 		<a href="/details/<?= $item->id; ?>" class="btn btn-info">Детали</a>
 	</div>
 <?
 }
-?></div>
+?>
+</div>
 <style type="text/css">
 	.tovar img {
 		height: 50%;
@@ -70,11 +79,11 @@ foreach ($phones as $item) {
 		height: 320px;
 	}
 	.filter select{
-		width: 80%;
+		width: 70%;
 	}
 	.filter{
 		float:left;
-		width:20%;
+		width:33%;
 		text-align: left;
 	}
 	.clearfix {
@@ -94,3 +103,7 @@ foreach ($phones as $item) {
 		margin: 0 auto;
 	}
 </style>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script type="text/javascript">
+
+</script>
