@@ -8,27 +8,27 @@
 use app\models\Phones;
 
 /**
+ * @var array $characters
  * @var array $phones
- * @var array $filterList
- * @var array $likes
  */
 ?>
 <link rel="stylesheet" href="/bootstrap/dist/css/bootstrap.css"/>
+
 <div class="center filter-form">
+	<div class="alert alert-info left">
+		Проставьте в одном или более полях оценку важности для Вас параметра.
+		Оценка может быть от <?=sizeof($characters);?> (самый важный параметр) до 1 (наименее значимый параметр).<br />
+		Для примера, если параметр "Встроенная память", важен, а остальные параметры не важны, то ставим <?=sizeof($characters);?> в соответствующее
+		поле, а остальные поля оставляем пустыми.
+	</div>
 	<form action="" method="post">
 
 	<?
-	foreach ($filterList as $id => $select) {
+	foreach ($characters as $input) {
 		?>
 		<div class="filter">
-			<h4><?= $select['name']; ?></h4>
-			<select name="filter[<?= $id; ?>]" id="">
-				<option value="">--</option>
-				<? foreach ($select['params'] as $option) {
-					?>
-					<option value='<?= $option; ?>' <?=isset($_POST['filter']) && isset($_POST['filter'][$id]) && $_POST['filter'][$id] == $option?'selected="selected"':'';?>><?= $option; ?></option><?
-				}?>
-			</select>
+			<h4><?= $input['name']; ?></h4>
+			<input type="number" min="1" max="<?=sizeof($characters);?>" name="filter[<?= $input['id']; ?>]" value="<?=isset($_POST['filter'][$input['id']])?$_POST['filter'][$input['id']]:'';?>">
 		</div>
 	<?
 	}
@@ -49,14 +49,6 @@ foreach ($phones as $item) {
 		<strong><?= $item->name; ?></strong><br/>
 		<?= $item->price; ?> руб. <br/>
 		<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>" class=""/><br/>
-		<? if(isset($likes[$item->id])) {
-			?><a href="/site/dellike/?id=<?= $item->id; ?>">
-			Отменить <?=$likes[$item->id]==1?'<span class="glyphicon glyphicon-hand-up"></span>':'<span class="glyphicon glyphicon-hand-down"></span>';?>
-			<br/></a><?
-		} else {
-			?><a href="/site/like/?id=<?= $item->id; ?>"><span class="glyphicon glyphicon-hand-up"></span> Нравится</a>&nbsp;&nbsp;<?
-			?><a href="/site/dislike/?id=<?= $item->id; ?>"><span class="glyphicon glyphicon-hand-down"></span> Не нравится <br/></a><?
-		};?>
 
 		<a href="/details/<?= $item->id; ?>" class="btn btn-info">Детали</a>
 	</div>
@@ -91,6 +83,9 @@ foreach ($phones as $item) {
 	}
 	.center {
 		text-align: center;
+	}
+	.left {
+		text-align: left;
 	}
 
 	.filter-form {

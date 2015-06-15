@@ -18,23 +18,21 @@ class SiteController extends Controller
 
 	public function actionIndex()
 	{
-		Yii::$app->session->open();
-		$phones             = Phones::find();
-		$phones             = $this->getFiltersForQuery($phones);
-		$phones             = $phones->limit(30)
-									 ->all();
-		$allValuesForFilter = CharactersValues::find()
-											  ->with('names')
-											  ->where('cid in (1,2,24,14,9,10, 15)')
-											  ->all();
-		$filtersList        = $this->getDataListForFilters($allValuesForFilter);
-		$likes              = $this->getStorage();
+		$sql = 'Select * from characters_value';
+		$sql = $this->addFilters($sql);
+		$result = \yii::$app->getDb()->createCommand($sql)->queryAll();
+		$ids = $this->calculatePriority($result);
+		$tmpPhones = Phones::find()->indexBy('id')->all();
+		$result = [];
+		foreach ($ids as $id) {
+			$result[] = $tmpPhones[$id];
+		}
+		$characters = Characters::find()->where(['id'=>32])->orWhere(['id'=>22])->asArray()->all();
 		return $this->renderPartial(
-					'index', [
-							   'phones'     => $phones,
-							   'likes'      => $likes,
-							   'filterList' => $filtersList
-						   ]
+			'index', [
+				'characters'=>$characters,
+				'phones'=>$result,
+				   ]
 		);
 	}
 
@@ -46,98 +44,40 @@ class SiteController extends Controller
 									   ->where(['pid' => $id])
 									   ->all();
 		return $this->renderPartial(
-					'details', [
-								 'phone'       => $phone,
-								 'phoneParams' => $phoneParams
-							 ]
+			'details', [
+						 'phone'       => $phone,
+						 'phoneParams' => $phoneParams
+					 ]
 		);
 	}
 
-	/**
-	 * @param $phones
-	 *
-	 * @return mixed
-	 */
-	private function getFiltersForQuery($phones)
+	private function addFilters($sql)
 	{
-		if (isset($_POST['filter'])) {
-			$phones = $phones->innerJoin('characters_value', 'phones.id = characters_value.pid');
-			foreach ($_POST['filter'] as $id => $value) {
-				if ($value) {
-					$phones = $phones->where(
-									 [
-										 'cid'   => $id,
-										 'value' => $value
-									 ]
-					);
-				}
+		$ids = [];
+		if(!$_POST['filter']){
+			return $sql;
+		}
+		foreach ($_POST['filter'] as $id=>$value) {
+			$ids[] = $id;
+		}
+		$sql .= ' where cid IN ('.implode(',',$ids).')';
+		return $sql;
+	}
+
+	private function calculatePriority($arrayCharacters)
+	{
+		$ids = [];
+		$priority = [];
+		foreach ($arrayCharacters as $character) {
+			if(!isset($priority[$character['pid']])){
+				$priority[$character['pid']] = 0;
 			}
-			return $phones;
+			$priority[$character['pid']] += $_POST['filter'][$character['cid']]*$character['value'];
 		}
-		return $phones;
-	}
-
-	/**
-	 * @param $allValuesForFilter
-	 *
-	 * @return mixed
-	 */
-	private function getDataListForFilters($allValuesForFilter)
-	{
-		$filtersList = [];
-		foreach ($allValuesForFilter as $item) {
-			if (!isset($filtersList[$item->cid])) {
-				$filtersList[$item->cid] = [
-					'params' => [],
-					'name'   => $item->names->name
-				];
-			}
-			$filtersList[$item->cid]['params'][] = $item->value;
+		arsort($priority);
+		foreach ($priority as $id=>$value) {
+			$ids[] = $id;
 		}
-		foreach ($filtersList as $name => $list) {
-			$filtersList[$name]['params'] = array_unique($list['params']);
-		}
-		return $filtersList;
-	}
-
-	public function actionLike()
-	{
-		$this->setStorage($_GET['id'], 1);
-		$this->redirect($_SERVER['HTTP_REFERER']);
-	}
-
-	public function actionDislike()
-	{
-		$this->setStorage($_GET['id'], -1);
-		$this->redirect($_SERVER['HTTP_REFERER']);
-	}
-
-	public function actionDellike()
-	{
-		$this->delStorage($_GET['id']);
-		$this->redirect($_SERVER['HTTP_REFERER']);
-	}
-
-	public function getStorage($key = false)
-	{
-		$arr = json_decode(file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt'), true);
-		if ($key) {
-			return $arr[$key];
-		}
-		return $arr;
-	}
-
-	public function setStorage($key, $value)
-	{
-		$arr       = $this->getStorage();
-		$arr[$key] = $value;
-		file_put_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt', json_encode($arr));
-	}
-
-	public function delStorage($key)
-	{
-		$arr = $this->getStorage();
-		unset($arr[$key]);
-		file_put_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt', json_encode($arr));
+		return $ids;
 	}
 }
