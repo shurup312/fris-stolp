@@ -20,7 +20,6 @@ class SiteController extends Controller
 	{
 		Yii::$app->session->open();
 		$phones             = Phones::find();
-
 		$phones             = $this->getFiltersForQuery($phones);
 		$phones             = $phones->limit(30)
 									 ->all();
@@ -29,11 +28,11 @@ class SiteController extends Controller
 											  ->where('cid in (1,2,24,14,9,10, 15)')
 											  ->all();
 		$filtersList        = $this->getDataListForFilters($allValuesForFilter);
-		$likes = $this->getStorage();
+		$likes              = $this->getStorage();
 		return $this->renderPartial(
 					'index', [
 							   'phones'     => $phones,
-							   'likes'     => $likes,
+							   'likes'      => $likes,
 							   'filterList' => $filtersList
 						   ]
 		);
@@ -101,7 +100,6 @@ class SiteController extends Controller
 		return $filtersList;
 	}
 
-
 	public function actionLike()
 	{
 		$this->setStorage($_GET['id'], 1);
@@ -113,6 +111,7 @@ class SiteController extends Controller
 		$this->setStorage($_GET['id'], -1);
 		$this->redirect($_SERVER['HTTP_REFERER']);
 	}
+
 	public function actionDellike()
 	{
 		$this->delStorage($_GET['id']);
@@ -122,7 +121,7 @@ class SiteController extends Controller
 	public function getStorage($key = false)
 	{
 		$arr = json_decode(file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt'), true);
-		if($key){
+		if ($key) {
 			return $arr[$key];
 		}
 		return $arr;
@@ -130,16 +129,15 @@ class SiteController extends Controller
 
 	public function setStorage($key, $value)
 	{
-		$arr = $this->getStorage();
+		$arr       = $this->getStorage();
 		$arr[$key] = $value;
 		file_put_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt', json_encode($arr));
 	}
+
 	public function delStorage($key)
 	{
 		$arr = $this->getStorage();
 		unset($arr[$key]);
 		file_put_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'data.txt', json_encode($arr));
 	}
-
-	private $param;
 }
