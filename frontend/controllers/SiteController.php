@@ -18,20 +18,36 @@ class SiteController extends Controller
 
 	public function actionIndex()
 	{
-		$sql = 'Select * from characters_value';
-		$sql = $this->addFilters($sql);
-		$result = \yii::$app->getDb()->createCommand($sql)->queryAll();
-		$ids = $this->calculatePriority($result);
-		$tmpPhones = Phones::find()->indexBy('id')->all();
-		$result = [];
+		FRIS::getAllPhones();
+		FRIS::normalizeParametersOfPhones();
+		FRIS::calculateFirstImportant();
+		FRIS::getFirstNPhones();
+		FRIS::splitPhonesByNClasses();
+		FRIS::getFirstEtalonsForEachOfNClasses();
+		FRIS::getEtalonsForEachOfNClasses();
+		FRIS::classificationPhones();
+		FRIS::splitPhoneByClasters();
+		$sql       = $this->getCharacters();
+		$result    = \yii::$app->getDb()
+							   ->createCommand($sql)
+							   ->queryAll();
+		$ids       = $this->calculatePriority($result);
+		$tmpPhones = Phones::find()
+						   ->indexBy('id')
+						   ->all();
+		$result    = [];
 		foreach ($ids as $id) {
 			$result[] = $tmpPhones[$id];
 		}
-		$characters = Characters::find()->where(['id'=>32])->orWhere(['id'=>22])->asArray()->all();
+		$characters = Characters::find()
+								->where('id IN ('.FRIS::getFiltersIdForSQL().')')
+								->orderBy('id ASC')
+								->asArray()
+								->all();
 		return $this->renderPartial(
 			'index', [
-				'characters'=>$characters,
-				'phones'=>$result,
+					   'characters' => $characters,
+					   'phones'     => $result,
 				   ]
 		);
 	}
@@ -51,31 +67,45 @@ class SiteController extends Controller
 		);
 	}
 
-	private function addFilters($sql)
+	private function getCharacters()
 	{
+		$sql = 'Select * from characters_value';
 		$ids = [];
-		if(!$_POST['filter']){
+		if (!isset($_POST['filter'])) {
 			return $sql;
 		}
-		foreach ($_POST['filter'] as $id=>$value) {
+		foreach ($_POST['filter'] as $id => $value) {
 			$ids[] = $id;
 		}
-		$sql .= ' where cid IN ('.implode(',',$ids).')';
+		$sql .= ' where cid IN ('.implode(',', $ids).')';
 		return $sql;
 	}
 
 	private function calculatePriority($arrayCharacters)
 	{
-		$ids = [];
+		$ids      = [];
 		$priority = [];
 		foreach ($arrayCharacters as $character) {
-			if(!isset($priority[$character['pid']])){
+			if (!isset($priority[$character['pid']])) {
 				$priority[$character['pid']] = 0;
 			}
-			$priority[$character['pid']] += $_POST['filter'][$character['cid']]*$character['value'];
+			if (in_array(
+				$character['value'], [
+				'Да',
+				'есть'
+			]
+			)) {
+				$character['value'] = 10;
+			}
+			if (in_array($character['value'], ['нет'])) {
+				$character['value'] = 0;
+			}
+			if (isset($_POST['filter'][$character['cid']])) {
+				$priority[$character['pid']] += $_POST['filter'][$character['cid']]*$character['value'];
+			}
 		}
 		arsort($priority);
-		foreach ($priority as $id=>$value) {
+		foreach ($priority as $id => $value) {
 			$ids[] = $id;
 		}
 		return $ids;
