@@ -28,6 +28,10 @@ class FRIS
 	];
 	const CALCULATE_NON_CLASSES = false;
 
+	/**
+	 * Получение данных, присланных пользователем из фильтра
+	 * @return array
+	 */
 	public static function getPriorityParams()
 	{
 		$priorityParams = [];
@@ -46,6 +50,9 @@ class FRIS
 		return $priorityParams;
 	}
 
+	/**
+	 * Получение всего списка телефонов в виде объектов PhoneObject.
+	 */
 	public static function getAllPhones()
 	{
 		$phones = Phones::find()
@@ -69,11 +76,19 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Вспомогательная функция для формирования SQL запроса по получению характеристик в фильтр,
+	 * то есть она возвращает часть SQL кода.
+	 * @return string
+	 */
 	public static function getFiltersIdForSQL()
 	{
 		return implode(',', FRIS::$filterIDArray);
 	}
 
+	/**
+	 * Нормализация параметров каждого телефона, чтобы можно было нормально считать первичную важность телефонов.
+	 */
 	public static function normalizeParametersOfPhones()
 	{
 		foreach (PhonesContainer::getContainer() as $phone) {
@@ -117,6 +132,10 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Рассчет первичной важности каждого телефона по 8ми параметрам, которые мы отобрадил,
+	 * плюс учитываются коэффициенты, присланные польлзователем в фильтре.
+	 */
 	public static function calculateFirstImportant()
 	{
 		foreach (PhonesContainer::getContainer() as $phone) {
@@ -127,11 +146,17 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Сортировка телефонов и выделение первых N телефонов для обучающей выборки
+	 */
 	public static function getFirstNPhones()
 	{
 		FRIS::sortPhonesByFirstImportant();
 	}
 
+	/**
+	 * Сортировка телефонов по паервичной важности
+	 */
 	private static function sortPhonesByFirstImportant()
 	{
 		$phones = PhonesContainer::getContainer();
@@ -147,6 +172,9 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Разбиение телефонов из обучающей выборки на N классов
+	 */
 	public static function splitPhonesByNClasses()
 	{
 		$min = 100;
@@ -167,6 +195,9 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Выделение первичных эталонов в каждом классе (п.1)
+	 */
 	public static function getFirstEtalonsForEachOfNClasses()
 	{
 		for ($i = 0;$i < self::COUNT_FIRST_CLASSES;$i++) {
@@ -194,6 +225,9 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Выделение эталонов внутри каждого класса (п.2)
+	 */
 	public static function getEtalonsForEachOfNClasses()
 	{
 		$start = microtime(true);
@@ -205,8 +239,10 @@ class FRIS
 	}
 
 	/**
-	 * @param PhoneObject   $x
-	 * @param PhoneObject[] $X
+	 *
+	 * Всопомгательная функция для рассчета обороноспособности телефона
+	 * @param PhoneObject   $x объект телефона, для которго считаем обороноспособность
+	 * @param PhoneObject[] $X выборка телефонов класса, к которому принадлежит телефон из первого параметра
 	 *
 	 * @return float
 	 */
@@ -225,8 +261,10 @@ class FRIS
 	}
 
 	/**
-	 * @param PhoneObject   $u
-	 * @param PhoneObject[] $omega
+	 * Нахождение ближайшего соседа для телефона из предоставленной выборки
+	 *
+	 * @param PhoneObject   $u телефон, для которого ищем ближайщшего соседа
+	 * @param PhoneObject[] $omega выборка, из которой ищем ближайшего соседа
 	 *
 	 * @return PhoneObject
 	 */
@@ -244,6 +282,14 @@ class FRIS
 		return $nn;
 	}
 
+	/**
+	 * FRIS-функция на тройке параметров
+	 * @param $u
+	 * @param $x
+	 * @param $nn
+	 *
+	 * @return float
+	 */
 	private static function S($u, $x, $nn)
 	{
 		$euclidianDistance1 = FRIS::euclidianDistance($u, $nn);
@@ -256,6 +302,7 @@ class FRIS
 	}
 
 	/**
+	 * Рассчет евклидова расстояния между двумя телефонами, переданными в качестве параметров
 	 * @param PhoneObject $u
 	 * @param PhoneObject $etalon
 	 *
@@ -270,11 +317,22 @@ class FRIS
 		return sqrt($euclidianDistance);
 	}
 
+	/**
+	 * Рассчет толерантности для телефона
+	 * @param PhoneObject $phone телефон, для которого считает толерантность
+	 * @param PhoneObject[] $phones выборка, на основании которой для телефона считаем толерантность
+	 *
+	 * @return float
+	 */
 	private static function calcToleranceForPhone($phone, $phones)
 	{
 		return FRIS::calcDefensesForPhone($phone, $phones);
 	}
 
+	/**
+	 * Проверка кадого из телефонов обучабщей выборки на правильность классификации (п. 4-6)
+	 * @throws \Exception
+	 */
 	public static function classificationPhones()
 	{
 		$phones = PhonesContainer::getFirstNPhones();
@@ -296,6 +354,8 @@ class FRIS
 	}
 
 	/**
+	 * Всопомогательна функция для удаления из выборки телефонов, которые надо классифицировать, тех, которые уже
+	 * правильно классифицированы (п.5)
 	 * @param $phones
 	 */
 	public static function deleteTrueClassificated($phones)
@@ -326,8 +386,9 @@ class FRIS
 	}
 
 	/**
-	 * @param $phonesInClass
-	 * @param $phonesOutOfClass
+	 * Реализация функции FindStandart
+	 * @param PhoneObject[] $phonesInClass подборка телефонов класса, для рассчета обороноспособности
+	 * @param PhoneObject[] $phonesOutOfClass подборка телефонов за пределом класса, для рассчета толерантности
 	 */
 	public static function findStandard($phonesInClass, $phonesOutOfClass)
 	{
@@ -368,6 +429,9 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Разбиение телефонов на кластеры, приложение D
+	 */
 	public static function splitPhoneByClasters()
 	{
 		$allClusters = [];
@@ -412,6 +476,9 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Разбиение неклассифицированных телефонов на классы, приложение E
+	 */
 	public static function splitPhonesNonClassesByClasses()
 	{
 		foreach (PhonesContainer::getPhonesNonClasses() as $phone) {
@@ -438,6 +505,10 @@ class FRIS
 		}
 	}
 
+	/**
+	 * Метод возвращает значение переменной "лямбда", которая может ыть задана пользователем в фильтре
+	 * @return float
+	 */
 	private static function getLambda()
 	{
 		$lambda = isset($_POST['lambda'])?(float)$_POST['lambda']:FRIS::LAMBDA;
@@ -445,6 +516,11 @@ class FRIS
 	}
 }
 
+/**
+ * Класс, описывающий объект телефона
+ * Class PhoneObject
+ * @package frontend\controllers
+ */
 class PhoneObject extends Phones
 {
 
@@ -458,6 +534,11 @@ class PhoneObject extends Phones
 	public $firstImportant = 0;
 }
 
+/**
+ * Класс-контейнер для хранения телефонов. Единое место, где телефоны хранятся на протяжении всего цикла работы алгоритма
+ * Class PhonesContainer
+ * @package frontend\controllers
+ */
 class PhonesContainer
 {
 
@@ -466,13 +547,18 @@ class PhonesContainer
 	 */
 	public static $container = [];
 
+	/**
+	 * Обнуление контейнера с телефонами
+	 */
 	public static function resetContainer()
 	{
 		self::$container = [];
 	}
 
 	/**
-	 * @param bool $id
+	 * Получение телефона из контейнера
+	 *
+	 * @param bool $id ID телефона, который нао получить из контейнера, если параметр не передан, то возвращаются все телефоны
 	 *
 	 * @return PhoneObject[]|PhoneObject
 	 */
@@ -485,7 +571,9 @@ class PhonesContainer
 	}
 
 	/**
-	 * @param PhoneObject $phone
+	 * Сохранение в контейнер телефона, параданного в качестве параметра
+	 *
+	 * @param PhoneObject $phone телефон для сохранения в контейнере
 	 */
 	public static function setContainer($phone)
 	{
@@ -493,6 +581,8 @@ class PhonesContainer
 	}
 
 	/**
+	 * Получение только тех телефонов, которые входят в обучающую выборку
+	 *
 	 * @return PhoneObject[]
 	 */
 	public static function getFirstNPhones()
@@ -501,6 +591,7 @@ class PhonesContainer
 	}
 
 	/**
+	 * Получение телефонов из обучающей выборки, которые не принадлежат классу, ID которого передан в качестве параметра
 	 * @param               $id
 	 * @param PhoneObject[] $phones
 	 *
@@ -524,6 +615,7 @@ class PhonesContainer
 	}
 
 	/**
+	 * Получение телефонов из обучающей выборки, которые принадлежат классу, ID которого передан в качестве параметра
 	 * @param               $id
 	 * @param PhoneObject[] $phones
 	 *
@@ -544,6 +636,8 @@ class PhonesContainer
 	}
 
 	/**
+	 * Получение всех эталонных телефонов из обучающей выборки
+	 *
 	 * @return PhoneObject[]
 	 */
 	public static function getAllEtalons()
@@ -559,6 +653,7 @@ class PhonesContainer
 	}
 
 	/**
+	 * Список всех неклассифицированных телефонвв (для приложения E)
 	 * @param array $phones
 	 *
 	 * @return PhoneObject[]
