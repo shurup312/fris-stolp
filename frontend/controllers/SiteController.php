@@ -27,27 +27,20 @@ class SiteController extends Controller
 		FRIS::getEtalonsForEachOfNClasses();
 		FRIS::classificationPhones();
 		FRIS::splitPhoneByClasters();
-		$sql       = $this->getCharacters();
-		$result    = \yii::$app->getDb()
-							   ->createCommand($sql)
-							   ->queryAll();
-		$ids       = $this->calculatePriority($result);
-		$tmpPhones = Phones::find()
-						   ->indexBy('id')
-						   ->all();
-		$result    = [];
-		foreach ($ids as $id) {
-			$result[] = $tmpPhones[$id];
-		}
+		FRIS::splitPhonesNonClassesByClasses();
 		$characters = Characters::find()
 								->where('id IN ('.FRIS::getFiltersIdForSQL().')')
 								->orderBy('id ASC')
 								->asArray()
 								->all();
+		$phones = PhonesContainer::getContainer();
+		usort($phones, function($a, $b){
+			return $a->classID>$b->classID?1:-1;
+		});
 		return $this->renderPartial(
 			'index', [
 					   'characters' => $characters,
-					   'phones'     => $result,
+					   'phones'     => $phones
 				   ]
 		);
 	}
@@ -65,49 +58,5 @@ class SiteController extends Controller
 						 'phoneParams' => $phoneParams
 					 ]
 		);
-	}
-
-	private function getCharacters()
-	{
-		$sql = 'Select * from characters_value';
-		$ids = [];
-		if (!isset($_POST['filter'])) {
-			return $sql;
-		}
-		foreach ($_POST['filter'] as $id => $value) {
-			$ids[] = $id;
-		}
-		$sql .= ' where cid IN ('.implode(',', $ids).')';
-		return $sql;
-	}
-
-	private function calculatePriority($arrayCharacters)
-	{
-		$ids      = [];
-		$priority = [];
-		foreach ($arrayCharacters as $character) {
-			if (!isset($priority[$character['pid']])) {
-				$priority[$character['pid']] = 0;
-			}
-			if (in_array(
-				$character['value'], [
-				'Да',
-				'есть'
-			]
-			)) {
-				$character['value'] = 10;
-			}
-			if (in_array($character['value'], ['нет'])) {
-				$character['value'] = 0;
-			}
-			if (isset($_POST['filter'][$character['cid']])) {
-				$priority[$character['pid']] += $_POST['filter'][$character['cid']]*$character['value'];
-			}
-		}
-		arsort($priority);
-		foreach ($priority as $id => $value) {
-			$ids[] = $id;
-		}
-		return $ids;
 	}
 }

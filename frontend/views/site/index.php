@@ -6,6 +6,7 @@
  * Time: 19:09
  */
 use app\models\Phones;
+use frontend\controllers\FRIS;
 
 /**
  * @var array $characters
@@ -17,44 +18,59 @@ use app\models\Phones;
 <div class="center filter-form">
 	<div class="alert alert-info left">
 		Проставьте в одном или более полях оценку важности для Вас параметра.
-		Оценка может быть от <?=sizeof($characters);?> (самый важный параметр) до 1 (наименее значимый параметр).<br />
-		Для примера, если параметр "Встроенная память", важен, а остальные параметры не важны, то ставим <?=sizeof($characters);?> в соответствующее
+		Оценка может быть от <?= sizeof($characters); ?> (самый важный параметр) до 1 (наименее значимый параметр).<br/>
+		Для примера, если параметр "Встроенная память", важен, а остальные параметры не важны, то
+		ставим <?= sizeof($characters); ?> в соответствующее
 		поле, а остальные поля оставляем пустыми.
 	</div>
 	<form action="" method="post">
 
-	<?
-	foreach ($characters as $input) {
+		<?
+		foreach ($characters as $input) {
+			?>
+			<div class="filter">
+				<h4><?= $input['name']; ?></h4>
+				<input type="number" min="1" max="<?= sizeof($characters); ?>" name="filter[<?= $input['id']; ?>]"
+					   value="<?= isset($_POST['filter'][$input['id']])?$_POST['filter'][$input['id']]:''; ?>">
+			</div>
+		<?
+		}
 		?>
 		<div class="filter">
-			<h4><?= $input['name']; ?></h4>
-			<input type="number" min="1" max="<?=sizeof($characters);?>" name="filter[<?= $input['id']; ?>]" value="<?=isset($_POST['filter'][$input['id']])?$_POST['filter'][$input['id']]:'';?>">
+			<h4>Переменная выборки</h4>
+			<input name="lambda"
+				   value="<?= isset($_POST['lambda'])?$_POST['lambda']:FRIS::LAMBDA; ?>">
+		</div>
+		<div class="clearfix"></div>
+		<br/>
+		<input type="submit" value="Искать" class="btn btn-primary"/>
+		<a href="/" class="btn btn-warning">Сбросить</a>
+	</form>
+</div>
+<div class="listAll"><?
+	$class = -1;
+	foreach ($phones as $item) {
+		/**
+		 * @var Phones $item
+		 */
+		if($class!=$item->classID){
+			$class=$item->classID;
+			?>
+			<div class="clearfix"></div>
+			<h4>Класс <?=$class+1;?></h4>
+			<?
+		}
+		?>
+		<div class="col-md-4 tovar">
+			<strong><?= $item->name; ?></strong><br/>
+			<?= $item->price; ?> руб. <br/>
+			<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>" class=""/><br/>
+
+			<a href="/details/<?= $item->id; ?>" class="btn btn-info">Детали</a>
 		</div>
 	<?
 	}
 	?>
-	<div class="clearfix"></div>
-	<br/>
-	<input type="submit" value="Искать" class="btn btn-primary" />
-	<a href="/" class="btn btn-warning">Сбросить</a>
-	</form>
-</div>
-<div class="listAll"><?
-foreach ($phones as $item) {
-	/**
-	 * @var Phones $item
-	 */
-	?>
-	<div class="col-md-4 tovar">
-		<strong><?= $item->name; ?></strong><br/>
-		<?= $item->price; ?> руб. <br/>
-		<img src="<?= $item->getPhoto(); ?>" alt="<?= $item->name; ?>" class=""/><br/>
-
-		<a href="/details/<?= $item->id; ?>" class="btn btn-info">Детали</a>
-	</div>
-<?
-}
-?>
 </div>
 <style type="text/css">
 	.tovar img {
@@ -70,26 +86,31 @@ foreach ($phones as $item) {
 		text-align: center;
 		height: 320px;
 	}
-	.filter select{
+
+	.filter select {
 		width: 70%;
 	}
-	.filter{
-		float:left;
-		width:33%;
+
+	.filter {
+		float: left;
+		width: 33%;
 		text-align: left;
 	}
+
 	.clearfix {
-		clear:both;
+		clear: both;
 	}
+
 	.center {
 		text-align: center;
 	}
+
 	.left {
 		text-align: left;
 	}
 
 	.filter-form {
-		margin:0 auto;
+		margin: 0 auto;
 		width: 1200px;
 	}
 

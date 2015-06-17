@@ -17,11 +17,16 @@ class FRIS
 	const COUNT_FIRST_CLASSES = 10;
 	const LAMBDA = 0.5;
 	public static $filterIDArray = [
+		5,
+		8,
+		10,
 		12,
 		22,
+		28,
 		32,
-		34
+		34,
 	];
+	const CALCULATE_NON_CLASSES = false;
 
 	public static function getPriorityParams()
 	{
@@ -62,7 +67,6 @@ class FRIS
 			$phone->params[] = $parameter->value;
 			PhonesContainer::setContainer($phone);
 		}
-		return PhonesContainer::getContainer();
 	}
 
 	public static function getFiltersIdForSQL()
@@ -83,6 +87,13 @@ class FRIS
 					case 'нет':
 						$phone->params[$key] = 0;
 						break;
+				}
+				if (strpos($param, '"')) {
+					$phone->params[$key] = (float)substr($param, 0, -1);
+				}
+				if (strpos($param, 'x')) {
+					list($x, $y) = explode('x', $param);
+					$phone->params[$key] = $x*$y;
 				}
 			}
 			PhonesContainer::setContainer($phone);
@@ -130,6 +141,7 @@ class FRIS
 		}
 		);
 		PhonesContainer::resetContainer();
+		$phones = array_slice($phones, 0, FRIS::COUNT_OF_FIRST_PHONES*1.7);
 		foreach ($phones as $phone) {
 			PhonesContainer::setContainer($phone);
 		}
@@ -157,26 +169,26 @@ class FRIS
 
 	public static function getFirstEtalonsForEachOfNClasses()
 	{
-		for($i = 0; $i<self::COUNT_FIRST_CLASSES;$i++){
+		for ($i = 0;$i < self::COUNT_FIRST_CLASSES;$i++) {
 			$phones = PhonesContainer::getPhonesByClassID($i);
-			if(!$phones){
+			if (!$phones) {
 				continue;
 			}
 			$sum = 0;
 			foreach ($phones as $phone) {
 				$sum += $phone->firstImportant;
 			}
-			$average = $sum/sizeof($phones);
-			$margin = $average;
+			$average  = $sum/sizeof($phones);
+			$margin   = $average;
 			$etalonID = 0;
 			foreach ($phones as $phone) {
 				$phoneMargin = $phone->firstImportant - $average;
-				if($phoneMargin<$margin){
-					$margin = $phoneMargin;
+				if ($phoneMargin < $margin) {
+					$margin   = $phoneMargin;
 					$etalonID = $phone->id;
 				}
 			}
-			$etalonPhone = PhonesContainer::getContainer($etalonID);
+			$etalonPhone           = PhonesContainer::getContainer($etalonID);
 			$etalonPhone->isEtalon = true;
 			PhonesContainer::setContainer($etalonPhone);
 		}
@@ -184,12 +196,12 @@ class FRIS
 
 	public static function getEtalonsForEachOfNClasses()
 	{
-		for($i = 0; $i<self::COUNT_FIRST_CLASSES;$i++){
-			$phonesInClass = PhonesContainer::getPhonesByClassID($i);
+		$start = microtime(true);
+		for ($i = 0;$i < self::COUNT_FIRST_CLASSES;$i++) {
+			$phonesInClass    = PhonesContainer::getPhonesByClassID($i);
 			$phonesOutOfClass = PhonesContainer::getPhonesNotByClassID($i);
 			self::findStandard($phonesInClass, $phonesOutOfClass);
 		}
-
 	}
 
 	/**
@@ -200,18 +212,16 @@ class FRIS
 	 */
 	private static function calcDefensesForPhone($x, $X)
 	{
-
 		$sum = 0;
 		foreach ($X as $u) {
-			if($x->id == $u->id){
+			if ($x->id==$u->id) {
 				continue;
 			}
 			$omega = PhonesContainer::getAllEtalons();
-			$nn = FRIS::NN($u, $omega);
+			$nn    = FRIS::NN($u, $omega);
 			$sum += FRIS::S($u, $x, $nn);
 		}
-
-		return $sum/(sizeof($X)-0.9999999);
+		return $sum/(sizeof($X) - 0.9999999);
 	}
 
 	/**
@@ -222,13 +232,13 @@ class FRIS
 	 */
 	private static function NN($u, $omega)
 	{
-		$nn = false;
+		$nn          = false;
 		$minDistance = 100;
 		foreach ($omega as $etalon) {
 			$euclidianDistance = FRIS::euclidianDistance($u, $etalon);
-			if($euclidianDistance<$minDistance){
+			if ($euclidianDistance < $minDistance) {
 				$minDistance = $euclidianDistance;
-				$nn = $etalon;
+				$nn          = $etalon;
 			}
 		}
 		return $nn;
@@ -238,8 +248,8 @@ class FRIS
 	{
 		$euclidianDistance1 = FRIS::euclidianDistance($u, $nn);
 		$euclidianDistance2 = FRIS::euclidianDistance($u, $x);
-		$f = $euclidianDistance1 + $euclidianDistance2;
-		if($f == 0){
+		$f                  = $euclidianDistance1 + $euclidianDistance2;
+		if ($f==0) {
 			$f = 1;
 		}
 		return ($euclidianDistance1 - $euclidianDistance2)/$f;
@@ -254,8 +264,8 @@ class FRIS
 	private static function euclidianDistance($u, $etalon)
 	{
 		$euclidianDistance = 0;
-		for($i=0;$i<sizeof($u->params); $i++){
-			$euclidianDistance+= pow($etalon->params[$i]-$u->params[$i], 2);
+		for ($i = 0;$i < sizeof($u->params);$i++) {
+			$euclidianDistance += pow($etalon->params[$i] - $u->params[$i], 2);
 		}
 		return sqrt($euclidianDistance);
 	}
@@ -268,14 +278,19 @@ class FRIS
 	public static function classificationPhones()
 	{
 		$phones = PhonesContainer::getFirstNPhones();
+		$i      = 0;
 		do {
 			$phones = self::deleteTrueClassificated($phones);
-			if($phones){
-				for($i=0; $i<FRIS::COUNT_FIRST_CLASSES; $i++){
-					$phonesInClass = PhonesContainer::getPhonesByClassID($i, $phones);
+			if ($phones) {
+				for ($i = 0;$i < FRIS::COUNT_FIRST_CLASSES;$i++) {
+					$phonesInClass    = PhonesContainer::getPhonesByClassID($i, $phones);
 					$phonesNotInClass = PhonesContainer::getPhonesNotByClassID($i, $phones);
 					FRIS::findStandard($phonesInClass, $phonesNotInClass);
 				}
+			}
+			$i++;
+			if ($i==5) {
+				throw new \Exception('Функция не может классифицировать телефоны.');
 			}
 		} while(!empty($phones));
 	}
@@ -316,14 +331,15 @@ class FRIS
 	 */
 	public static function findStandard($phonesInClass, $phonesOutOfClass)
 	{
-		if(!$phonesInClass){
-			return ;
+		$etalon = [];
+		if (!$phonesInClass) {
+			return;
 		}
 		$maxEfficienty = -100;
 		foreach ($phonesInClass as $phone) {
 			$defenses   = FRIS::calcDefensesForPhone($phone, $phonesInClass);
 			$tolerance  = FRIS::calcToleranceForPhone($phone, $phonesOutOfClass);
-			$efficienty = FRIS::LAMBDA*$defenses + (1 - FRIS::LAMBDA)*$tolerance;
+			$efficienty = FRIS::getLambda()*$defenses + (1 - FRIS::getLambda())*$tolerance;
 			if ($efficienty > $maxEfficienty) {
 				$maxEfficienty = $efficienty;
 				$etalon        = [$phone];
@@ -343,7 +359,7 @@ class FRIS
 				}
 			}
 		}
-		if (!$etalonPhoneForClass) {
+		if (!$etalonPhoneForClass && isset($etalon[0])) {
 			$etalonPhoneForClass = $etalon[0];
 		}
 		if ($etalonPhoneForClass) {
@@ -354,20 +370,88 @@ class FRIS
 
 	public static function splitPhoneByClasters()
 	{
-		for($i=0; $i<FRIS::COUNT_FIRST_CLASSES;$i++){
-
+		$allClusters = [];
+		$j           = 0;
+		for ($i = 0;$i < FRIS::COUNT_FIRST_CLASSES;$i++) {
+			$clusters         = [];
+			$phonesByClass    = PhonesContainer::getPhonesByClassID($i);
+			$phonesNotByClass = PhonesContainer::getPhonesNotByClassID($i);
+			if (!$phonesByClass) {
+				continue;
+			}
+			foreach ($phonesByClass as $key => $phone) {
+				if ($phone->isEtalon) {
+					$clusters[$j++] = [$phone];
+					unset($phonesByClass[$key]);
+				}
+			}
+			foreach ($phonesByClass as $phone) {
+				$clusterID = 0;
+				$maxS      = -1;
+				$bj        = FRIS::NN($phone, $phonesNotByClass);
+				foreach ($clusters as $id => $phonesInCluster) {
+					$etalon = $phonesInCluster[0];
+					$s      = FRIS::S($phone, $etalon, $bj);
+					if ($s > $maxS) {
+						$maxS      = $s;
+						$clusterID = $id;
+					}
+				}
+				$clusters[$clusterID][] = $phone;
+			}
+			$allClusters += $clusters;
 		}
+		foreach ($allClusters as $id => $cluster) {
+			foreach ($cluster as $phone) {
+				/**
+				 * @var PhoneObject $phone
+				 */
+				$phone->classID = $id;
+				PhonesContainer::setContainer($phone);
+			}
+		}
+	}
+
+	public static function splitPhonesNonClassesByClasses()
+	{
+		foreach (PhonesContainer::getPhonesNonClasses() as $phone) {
+			$maxS      = -100;
+			$clusterID = 0;
+			if (self::CALCULATE_NON_CLASSES) {
+				foreach (PhonesContainer::getAllEtalons() as $etalon) {
+					$u                = $phone;
+					$phonesInClass    = PhonesContainer::getPhonesByClassID($etalon->classID);
+					$phonesNotInClass = PhonesContainer::getPhonesNotByClassID($etalon->classID);
+					$nn1              = FRIS::NN($u, $phonesInClass);
+					$nn2              = FRIS::NN($u, $phonesNotInClass);
+					$s                = FRIS::S($u, $nn1, $nn2);
+					if ($s > $maxS) {
+						$maxS      = $s;
+						$clusterID = $etalon->classID;
+					}
+				}
+				$phone->classID = $clusterID;
+			} else {
+				$phone->classID = FRIS::COUNT_FIRST_CLASSES + 10;
+			}
+			PhonesContainer::setContainer($phone);
+		}
+	}
+
+	private static function getLambda()
+	{
+		$lambda = isset($_POST['lambda'])?(float)$_POST['lambda']:FRIS::LAMBDA;
+		return $lambda;
 	}
 }
 
-class PhoneObject
+class PhoneObject extends Phones
 {
 
 	public $id;
 	public $name;
 	public $price;
 	public $photo;
-	public $weight;
 	public $isEtalon;
 	public $classID;
 	public $params;
@@ -376,6 +460,7 @@ class PhoneObject
 
 class PhonesContainer
 {
+
 	/**
 	 * @var PhoneObject[] $container
 	 */
@@ -404,7 +489,6 @@ class PhonesContainer
 	 */
 	public static function setContainer($phone)
 	{
-
 		self::$container[$phone->id] = $phone;
 	}
 
@@ -417,22 +501,22 @@ class PhonesContainer
 	}
 
 	/**
-	 * @param       $id
+	 * @param               $id
 	 * @param PhoneObject[] $phones
 	 *
 	 * @return PhoneObject[]
 	 */
-	public static function getPhonesNotByClassID($id, $phones = []){
+	public static function getPhonesNotByClassID($id, $phones = [])
+	{
 		$phonesArray = [];
-		if(!$phones){
+		if (!$phones) {
 			$phones = self::getContainer();
 		}
 		foreach ($phones as $phone) {
-
-			if(is_null($phone->classID)){
+			if (is_null($phone->classID)) {
 				continue;
 			}
-			if($phone->classID !== $id){
+			if ($phone->classID!==$id) {
 				$phonesArray[] = $phone;
 			}
 		}
@@ -440,19 +524,19 @@ class PhonesContainer
 	}
 
 	/**
-	 * @param $id
+	 * @param               $id
 	 * @param PhoneObject[] $phones
 	 *
 	 * @return PhoneObject[]
 	 */
-	public static function getPhonesByClassID($id, $phones = []){
+	public static function getPhonesByClassID($id, $phones = [])
+	{
 		$phonesArray = [];
-		if(!$phones){
+		if (!$phones) {
 			$phones = self::getContainer();
 		}
 		foreach ($phones as $phone) {
-
-			if($phone->classID === $id){
+			if ($phone->classID===$id) {
 				$phonesArray[] = $phone;
 			}
 		}
@@ -466,11 +550,30 @@ class PhonesContainer
 	{
 		$arrayOfEtalons = [];
 		foreach (self::getContainer() as $phone) {
-			if(!$phone->isEtalon){
+			if (!$phone->isEtalon) {
 				continue;
 			}
 			$arrayOfEtalons[] = $phone;
 		}
 		return $arrayOfEtalons;
+	}
+
+	/**
+	 * @param array $phones
+	 *
+	 * @return PhoneObject[]
+	 */
+	public static function getPhonesNonClasses($phones = [])
+	{
+		$phonesArray = [];
+		if (!$phones) {
+			$phones = self::getContainer();
+		}
+		foreach ($phones as $phone) {
+			if (is_null($phone->classID)) {
+				$phonesArray[] = $phone;
+			}
+		}
+		return $phonesArray;
 	}
 }
